@@ -1,0 +1,133 @@
+---
+title: "Monitoring per-asset health in MantleScope"
+description: "Inspect every Mantle position's balance, USD value, health bar, risk badge, and AI-generated insight. Covers MNT native and ETH bridged positions."
+---
+
+The Positions page lists every asset in your connected wallet as an individual card, each with a protocol label, balance, USD value, a colour-coded health bar, and a Safe / Watch / Risk badge. An AI analysis panel below the list provides a plain-language summary of your overall position health based on the same risk engine that drives the [Dashboard](/features/dashboard).
+
+## Position card anatomy
+
+Each card is built from the following fields:
+
+<CardGroup cols={2}>
+  <Card title="Icon and name" icon="image">
+    A coloured icon chip (green for MNT, blue for ETH) shows the asset ticker. The name below distinguishes the asset role — e.g., "MNT (native)" vs "ETH (bridged)".
+  </Card>
+  <Card title="Protocol label" icon="tag">
+    The protocol or bridge through which the asset is held. MNT shows **Mantle Network**; ETH shows **Mantle Bridge**. The full positions view also includes a Protocol row inside the metrics grid.
+  </Card>
+  <Card title="Balance" icon="scale-balanced">
+    Raw token balance: MNT to two decimal places (e.g., `12400.00 MNT`). ETH balance is shown in demo mode (e.g., `4.8200 ETH`); in live mode, ETH on Mantle reflects your bridged balance.
+  </Card>
+  <Card title="USD value" icon="dollar-sign">
+    `balance × live price`, rounded to the nearest dollar and formatted with locale-aware commas (e.g., `$11,408`).
+  </Card>
+  <Card title="Health bar" icon="heart-pulse">
+    A thin horizontal bar that fills from 0 to 100. Colour depends on the health percentage (see table below). Animates with a 0.5-second transition when values change.
+  </Card>
+  <Card title="Risk badge" icon="shield">
+    A pill badge in the top-right of each card showing Safe, Watch, or Risk. Matches the health bar colour.
+  </Card>
+</CardGroup>
+
+## Health thresholds
+
+| Health % | Bar colour | Badge | Meaning |
+|----------|-----------|-------|---------|
+| ≥ 60 % | `#5de8a0` (green) | Safe | Position is healthy; no action needed |
+| 40 – 59 % | `#f5a623` (amber) | Watch | Moderate risk; monitor closely |
+| < 40 % | `#ff4d4d` (red) | Risk | High exposure; consider reducing or guarding |
+
+<Note>
+For MNT, the health percentage equals the current risk score (0–100) so the two values are always in sync with the [Dashboard](/features/dashboard) ring. For ETH bridged via Mantle Bridge, the health is always 92 % because bridged ETH carries minimal protocol-specific liquidation risk on Mantle.
+</Note>
+
+## Supported assets
+
+<Tabs>
+  <Tab title="MNT (native)">
+    **Source:** Mantle Network native token balance, read via `ethers.getBalance` on the connected address.
+
+    The health percentage mirrors the portfolio risk score calculated by `calcScore`. Any change in MNT price or concentration that shifts the score also shifts the health bar in real time.
+
+    **Icon:** Green chip (`rgba(93,232,160,0.1)` background, `#5de8a0` text)
+  </Tab>
+  <Tab title="ETH (bridged)">
+    **Source:** ETH balance on Mantle, representing tokens bridged via the official Mantle Bridge.
+
+    Health is pinned at **92 %** (Safe) because bridged ETH on Mantle does not participate in lending protocols with liquidation risk unless individually deposited into Lendle or Init Capital.
+
+    **Icon:** Blue chip (`rgba(77,166,255,0.1)` background, `#4da6ff` text)
+
+    <Info>
+      If you deposit bridged ETH into a lending protocol like Lendle, a new position card would appear with that protocol's health factor. The current implementation reflects wallet-level holdings.
+    </Info>
+  </Tab>
+</Tabs>
+
+## AI position analysis
+
+The analysis panel below the position list is powered by the same insight engine as the dashboard. It outputs one of three messages depending on the risk score:
+
+<AccordionGroup>
+  <Accordion title="Low risk message (score ≥ 70)">
+    > "Your wallet holds [X] MNT at \$[price]. Risk is low. MNT is [Z]% of portfolio. Monitor for drops below \$[0.75 × price]."
+
+    The embedded watch price updates every 30 seconds with the live CoinGecko feed, so the suggested level always reflects current market conditions.
+  </Accordion>
+  <Accordion title="Medium risk message (score 40–69)">
+    > "Risk score [X]/100. MNT concentration of [Z]% is elevated. Consider a vault guard trigger at \$[0.72 × price]."
+
+    Clicking through to [Vault Guard](/features/vault-guard) lets you create a guard with exactly this threshold without having to recalculate it manually.
+  </Accordion>
+  <Accordion title="High risk message (score < 40)">
+    > "High risk. MNT concentration of [Z]% with current prices creates significant exposure. Reduce MNT and enable vault guards."
+
+    This message is also surfaced as a red alert in the [Alerts](/features/alerts) feed at the same time.
+  </Accordion>
+</AccordionGroup>
+
+## How positions are populated
+
+<Steps>
+  <Step title="Wallet connection">
+    When you connect MetaMask or load demo mode, `fetchBalances()` calls `ethers.getBalance` for MNT and stores the result in `S.mntBalance`. ETH balance (`S.ethBalance`) is set to the bridge balance or demo value.
+  </Step>
+  <Step title="Price fetch">
+    `fetchPrices()` calls the CoinGecko `/simple/price` endpoint for both `mantle` and `ethereum` tokens every 30 seconds. The results are stored as `S.mntPrice` and `S.ethPrice`.
+  </Step>
+  <Step title="Score calculation">
+    `calcScore(S.mntBalance, S.ethBalance)` runs and the result is stored as `S.riskScore`. This value feeds the MNT health percentage.
+  </Step>
+  <Step title="Card rendering">
+    `renderPositions(total, share, insight)` builds the HTML for both the dashboard preview and the full positions list from the same `rows` array, ensuring the two views are always consistent.
+  </Step>
+  <Step title="Periodic refresh">
+    Balances re-fetch every 60 seconds and prices every 30 seconds. Each refresh triggers a full re-render of all position cards and the AI insight panel.
+  </Step>
+</Steps>
+
+## Viewing positions in context
+
+The [Dashboard](/features/dashboard) shows a condensed two-card preview of positions under the stats grid. The **View all →** link in that card navigates directly to this page where the full protocol row is also visible. Position data is the same in both views — it is rendered from the same `rows` array by `posCardHTML`.
+
+<Tip>
+If a position badge shows **Risk** and you want to automate a response, open [Vault Guard](/features/vault-guard) and create a guard with a `price_lte` or `health_lte` condition for that asset. Every guard action is then logged in the [Proof Log](/features/proof-log).
+</Tip>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    See the aggregate risk score ring and the positions preview card.
+  </Card>
+  <Card title="Alerts" icon="bell" href="/features/alerts">
+    High-risk position states generate red alerts automatically in the alert feed.
+  </Card>
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Create autonomous guards for MNT, mETH, USDC, and LP positions.
+  </Card>
+  <Card title="Proof Log" icon="file-lines" href="/features/proof-log">
+    Every AI decision affecting positions is recorded as an immutable onchain entry.
+  </Card>
+</CardGroup>

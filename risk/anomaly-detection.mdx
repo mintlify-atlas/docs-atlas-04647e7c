@@ -1,0 +1,113 @@
+---
+title: "Anomaly and impermanent loss detection"
+description: "How MantleScope monitors for fee spikes, MNT/USDC impermanent loss drift, and abnormal position health, and surfaces findings in the alert feed and proof log."
+---
+
+Alongside the core risk score, MantleScope runs a continuous anomaly monitoring layer that watches for events the score alone cannot capture: sudden protocol fee spikes, impermanent loss accumulating in liquidity positions, and unexpected changes to position health factors. When the model detects an anomalous pattern, it surfaces a finding in the alert feed and writes a proof log entry with an on-chain transaction hash on Mantle.
+
+## The anomaly score
+
+The dashboard stat card displays a single anomaly score on a **0 to 1 scale**.
+
+| Score range | Interpretation | Dashboard label |
+|-------------|---------------|----------------|
+| 0.00 – 0.10 | No unusual activity detected | Normal activity |
+| 0.11 – 0.40 | Minor deviations; passive monitoring | Elevated |
+| 0.41 – 0.70 | Significant anomaly; alert generated | High |
+| 0.71 – 1.00 | Severe anomaly; proof log entry + alert | Critical |
+
+The current baseline score is **0.04**, reflecting normal activity across connected positions. The score rises when the model observes patterns that deviate from the wallet's historical baseline — for example, a protocol charging fees well outside its normal range, or an LP position drifting far from its entry price.
+
+<Info>
+  The anomaly score is independent of the main risk score. A wallet can have a low risk score (stable MNT price, good diversification) while simultaneously showing an elevated anomaly score if, for example, a fee spike is detected in an Agni Finance liquidity pool.
+</Info>
+
+## Types of anomalies detected
+
+<AccordionGroup>
+  <Accordion title="Fee spikes" icon="circle-dollar-sign">
+    The model monitors the fees charged by each connected protocol (Agni Finance, Lendle, Mantle LST, Init Capital) against a rolling baseline. A fee spike is flagged when observed fees deviate significantly upward from that baseline — a pattern that can indicate protocol stress, unusual utilisation, or a governance change that has not yet been communicated to users.
+
+    **Proof log entry format:**
+    ```text
+    Anomaly model · fee spike detected · monitoring
+    ```
+
+    Alert dot colour: **red** (risk event).
+  </Accordion>
+  <Accordion title="Impermanent loss drift" icon="arrow-right-left">
+    For LP positions (such as the MNT/USDC pool on Agni Finance), the IL detector tracks the divergence between current pool composition and the ratio at which you entered the position. Drift is expressed as a percentage relative to your entry price.
+
+    **Proof log entry format:**
+    ```text
+    IL detector · MNT/USDC drift -1.2% from entry
+    ```
+
+    A negative drift value means MNT has depreciated relative to USDC since you entered the pool, increasing impermanent loss. Monitoring begins when drift exceeds the detection threshold; an alert is raised when drift becomes material.
+
+    Alert dot colour: **amber** (warning).
+  </Accordion>
+  <Accordion title="Position health changes" icon="heart-pulse">
+    The engine tracks health factors for lending positions on Lendle and Init Capital. Sudden drops in health factor — even if the absolute value remains above the liquidation floor — are flagged as anomalies because they suggest collateral value is declining faster than expected under current conditions.
+
+    Alert dot colour: **red** if health factor drops below 1.2; **amber** if between 1.2 and 1.8.
+  </Accordion>
+</AccordionGroup>
+
+## How anomalies surface
+
+Anomaly findings appear in two places: the live alert feed and the on-chain proof log.
+
+<Steps>
+  <Step title="Detection">
+    The anomaly model evaluates incoming block data and compares it against the wallet's historical baseline and protocol-level norms. Detection runs continuously while the app is open.
+  </Step>
+  <Step title="Alert feed entry">
+    When a finding is confirmed, the engine adds an entry to the Alerts page. The alert dot colour indicates severity: red for risk events, amber for warnings, green for informational scans. The alert includes a plain-language description and a relative timestamp.
+  </Step>
+  <Step title="Proof log entry">
+    Every anomaly finding — regardless of severity — is written to the Mantle proof log as an immutable transaction. The log entry includes a truncated transaction hash (e.g. `0xab3c…2e80`), a description of the finding, and a timestamp. Clicking the hash opens the transaction on the Mantle explorer.
+  </Step>
+  <Step title="Ongoing monitoring">
+    After a fee spike or IL drift is first flagged, the engine continues monitoring the same signal. If the anomaly resolves (fees return to baseline, IL drift stabilises), no further alerts are generated. If it worsens, a new proof log entry is written at the next detection cycle.
+  </Step>
+</Steps>
+
+## Alert dot colour reference
+
+Throughout the alert feed, each item carries a coloured dot that indicates the nature of the finding.
+
+| Dot colour | Category | Typical trigger |
+|-----------|----------|----------------|
+| Red | Risk event | Fee spike detected, health factor < 1.2, vault guard fired |
+| Amber | Warning | IL drift accumulating, MNT concentration above 70%, health factor 1.2–1.8 |
+| Green | Informational | Wallet scan complete, risk score updated, vault guard set |
+
+<Tip>
+  Only red and amber alerts increment the badge counter in the sidebar. Green informational entries appear in the feed but do not affect the badge count, so you can acknowledge them at your convenience without noise.
+</Tip>
+
+## Impermanent loss tracking in detail
+
+The IL detector specifically watches the **MNT/USDC** pool on Agni Finance. The metric reported is drift from your position's entry price — not a dollar loss figure — so it is comparable across different entry times and position sizes.
+
+```text
+IL detector · MNT/USDC drift -1.2% from entry
+```
+
+A drift of −1.2% means the MNT/USDC price ratio has moved 1.2% against your entry ratio. At this magnitude the IL is minor, but the proof log entry ensures there is an auditable record of when the drift was first observed.
+
+<Warning>
+  Impermanent loss only crystallises when you withdraw from the pool. The drift figure reported by MantleScope reflects the unrealised IL at current prices. If MNT recovers relative to USDC before you exit, the figure will move back toward zero.
+</Warning>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Alerts" icon="bell" href="/features/alerts">
+    View and manage the live alert feed, including all anomaly findings and risk score change notifications.
+  </Card>
+  <Card title="Proof Log" icon="file-lines" href="/features/proof-log">
+    Browse the immutable onchain record of every AI decision, vault guard action, and anomaly detection event.
+  </Card>
+</CardGroup>

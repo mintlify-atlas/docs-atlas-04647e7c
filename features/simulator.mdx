@@ -1,0 +1,159 @@
+---
+title: "Stress-testing your portfolio with the Simulator"
+description: "Model MNT and ETH price changes, market volatility, and time horizons to preview portfolio value, health factor, risk score, and vault guard verdicts."
+---
+
+The Simulator lets you adjust four scenario parameters and instantly see how your portfolio value, health factor, MNT price, and risk score would change under those conditions. It uses the same scoring engine as the live [Dashboard](/features/dashboard) and applies additional multipliers for volatility and time horizon so you can reason about tail-risk scenarios before they happen.
+
+## How to run a scenario
+
+<Steps>
+  <Step title="Open the Simulator">
+    Click **Simulator** in the sidebar or hit **Stress test** in the top bar from any page. The sliders reset to their neutral values (0 % price change, Normal volatility, 1 day).
+  </Step>
+  <Step title="Set MNT price change">
+    Drag the **MNT price change** slider between −80 % and +100 %. The label updates in real time (e.g., `−30%`). The simulated MNT price shown in the output grid is `currentMntPrice × (1 + slider/100)`.
+  </Step>
+  <Step title="Set ETH price change">
+    Drag the **ETH price change** slider between −80 % and +100 %. ETH affects portfolio value and the absolute risk score adjustment but not the health factor formula directly.
+  </Step>
+  <Step title="Set market volatility">
+    The volatility slider has three discrete steps: **Normal** (0), **High** (1), and **Extreme** (2). Higher volatility adds a positive penalty to the adjusted risk score (14 points per step), simulating the elevated liquidation risk that comes with unstable markets.
+  </Step>
+  <Step title="Set time horizon">
+    Choose from **1 day** (0), **1 week** (1), **1 month** (2), or **3 months** (3). Each step adds 4 points to the adjusted risk score, reflecting the compounding probability of adverse events over longer periods.
+  </Step>
+  <Step title="Read the output grid">
+    The four output tiles and the vault guard verdict update immediately after any slider movement. No submit button is needed.
+  </Step>
+  <Step title="Reset">
+    Click **Reset** in the card header to return all sliders to zero and clear the output.
+  </Step>
+</Steps>
+
+## Sliders reference
+
+| Slider | Range | Step | Unit |
+|--------|-------|------|------|
+| MNT price change | −80 % to +100 % | 1 | % |
+| ETH price change | −80 % to +100 % | 1 | % |
+| Market volatility | 0 to 2 | 1 | Discrete level |
+| Time horizon | 0 to 3 | 1 | Discrete period |
+
+## Output metrics
+
+<CardGroup cols={2}>
+  <Card title="Portfolio value" icon="wallet">
+    `round(mntBalance × simulatedMntPrice + ethBalance × simulatedEthPrice)`. In demo mode, the MNT default is 12,400 units. Displayed in USD with locale commas.
+  </Card>
+  <Card title="Health factor" icon="heart-pulse">
+    `max(0.4, 2.8 × (1 + mntChange / 100))`. Coloured red if below 1.2, amber if below 1.8, and green otherwise. Mirrors the health factor concept used in lending protocols: values below 1.0 indicate a liquidatable position.
+  </Card>
+  <Card title="MNT price" icon="tag">
+    `currentMntPrice × (1 + mntChange / 100)`. Displays in red when the simulated price is below the current price, and green when above.
+  </Card>
+  <Card title="Risk score" icon="gauge">
+    The adjusted score (see formula below). Displayed as `X/100`. Coloured red if below 40, amber if below 60, green if 60 or above.
+  </Card>
+</CardGroup>
+
+## Score adjustment formula
+
+```javascript score-adjustment
+var adj = Math.max(5, Math.min(99,
+  riskScore           // base score from calcScore()
+  - mp * 0.35         // MNT price drop penalty (−35 pts at −100%)
+  - Math.abs(ep) * 0.08  // ETH volatility penalty (symmetric)
+  + vol * 14          // volatility premium (+14 pts per level)
+  + time * 4          // time premium (+4 pts per period)
+));
+```
+
+- `mp` = MNT price change percentage (−80 to +100)
+- `ep` = ETH price change percentage (absolute value, so both rises and falls add penalty)
+- `vol` = volatility level (0, 1, or 2)
+- `time` = time horizon step (0, 1, 2, or 3)
+
+The result is clamped between 5 and 99.
+
+## Vault guard verdict
+
+The simulator also previews which vault guard state would be active under the scenario. The verdict appears in a full-width tile at the bottom of the output grid:
+
+<Tabs>
+  <Tab title="Safe (green)">
+    **Condition:** MNT change ≥ −15 % AND adjusted score ≥ 55.
+
+    **Message:** "All guards inactive — safe"
+
+    **AI recommendation:** "Portfolio healthy. Estimated value \$[total]. No vault guard needed."
+  </Tab>
+  <Tab title="Warning (amber)">
+    **Condition:** MNT change ≤ −15 % OR adjusted score < 55 (but not triggering danger).
+
+    **Message:** "Warning threshold approaching"
+
+    **AI recommendation:** "Risk elevated. AI increases monitoring. Consider rebalancing before the \$[0.72 × simulatedMntPrice] trigger."
+  </Tab>
+  <Tab title="Danger (red)">
+    **Condition:** MNT change ≤ −30 % OR adjusted score < 35.
+
+    **Message:** "Vault guard fires — position paused onchain"
+
+    **AI recommendation:** "MNT at \$[simulatedMntPrice] triggers vault guard. Portfolio: \$[total]."
+
+    <Warning>
+      A danger verdict means the price drop would breach the default `price_lte $0.72` guard configured in [Vault Guard](/features/vault-guard). If you have deployed that guard on Mantle Mainnet, the contract would automatically pause the MNT/USDC LP position.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Example scenarios
+
+<AccordionGroup>
+  <Accordion title="MNT drops 30 % in one day, normal volatility">
+    - MNT price change: −30 %
+    - ETH price change: 0 %
+    - Volatility: Normal
+    - Time horizon: 1 day
+
+    Result: health factor = `max(0.4, 2.8 × 0.7)` = **1.96** (amber). Adjusted score drops by 10.5 points from the base. If the base score was 72, adjusted = ~61. Verdict: **Warning** (MNT change ≤ −15 %).
+  </Accordion>
+  <Accordion title="MNT drops 50 %, extreme volatility, 1 month">
+    - MNT price change: −50 %
+    - ETH price change: −20 %
+    - Volatility: Extreme (2)
+    - Time horizon: 1 month (2)
+
+    Result: health factor = `max(0.4, 2.8 × 0.5)` = **1.40** (amber). Score adjustment: `72 − 17.5 − 1.6 + 28 + 8` = ~88.9 — but `adj` formula: note `mp × 0.35` = 17.5, `|ep| × 0.08` = 1.6, `vol × 14` = 28, `time × 4` = 8. Verdict: **Danger** (MNT ≤ −30 %).
+  </Accordion>
+  <Accordion title="MNT rises 20 %, low volatility">
+    - MNT price change: +20 %
+    - ETH price change: +5 %
+    - Volatility: Normal
+    - Time horizon: 1 day
+
+    Result: health factor = `max(0.4, 2.8 × 1.2)` = **3.36** (green). Adjusted score increases by 7 points from the base. Verdict: **Safe**.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Use the simulator before setting vault guard thresholds. If a −30 % MNT scenario consistently returns a danger verdict, set the guard's `price_lte` threshold at `currentPrice × 0.70` to give yourself a small buffer above the trigger point.
+</Tip>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    The base risk score fed into the simulator comes from the dashboard's `calcScore` function.
+  </Card>
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Use simulator output to choose the right threshold values for your guard contracts.
+  </Card>
+  <Card title="Alerts" icon="bell" href="/features/alerts">
+    Live alerts trigger at the same score and concentration thresholds the simulator models.
+  </Card>
+  <Card title="Proof Log" icon="file-lines" href="/features/proof-log">
+    When a vault guard fires in response to a breached threshold, the action is recorded onchain.
+  </Card>
+</CardGroup>

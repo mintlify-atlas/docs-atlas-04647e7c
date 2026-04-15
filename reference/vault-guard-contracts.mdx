@@ -1,0 +1,66 @@
+---
+title: "Vault Guard contracts reference"
+description: "Technical reference for MantleScope Vault Guard rules: supported assets, conditions, actions, protocols, and how guards are deployed and toggled onchain."
+---
+
+Vault Guards are autonomous protection rules deployed as smart contracts on Mantle Mainnet. When the AI engine determines that a condition has been met — a price drop, health factor breach, or concentration spike — the guard contract executes the configured action without any manual intervention. Every guard action is recorded in the Proof Log.
+
+## Guard configuration fields
+
+When you create a new guard via the **+ New guard** button, you configure four fields:
+
+| Field | Options | Description |
+|---|---|---|
+| Asset to protect | MNT, mETH, USDC, LP | The position or token this guard monitors |
+| Trigger action | Pause, Alert only, Withdraw | What happens when the condition is met |
+| Trigger condition | price ≤, health ≤, concentration ≥, risk score ≥ | The metric and direction being monitored |
+| Threshold value | Numeric | The value that triggers the guard |
+| Protocol | Agni Finance, Lendle, Mantle LST, Init Capital | The DeFi protocol the position belongs to |
+
+## Trigger conditions
+
+| Condition key | Label | Example threshold |
+|---|---|---|
+| `price_lte` | price ≤ | `0.72` (MNT at $0.72) |
+| `health_lte` | health ≤ | `1.5` (health factor 1.5) |
+| `conc_gte` | concentration ≥ | `80` (80% portfolio share) |
+| `risk_gte` | risk score ≥ | `75` (risk score 75/100) |
+
+## Trigger actions
+
+| Action | Description |
+|---|---|
+| **Pause position** | Halts the position to prevent further loss |
+| **Alert only** | Sends an alert without taking any onchain action |
+| **Withdraw** | Moves assets out of the protocol back to your wallet |
+
+## Guard states
+
+Each guard can be toggled between **Active** and **Paused** at any time using the toggle switch in the Vault Guard panel. When paused, the guard contract stops monitoring and will not fire even if conditions are met.
+
+## Demo mode vs. live deployment
+
+<Note>
+  In demo mode, all guard operations are simulated in-browser. No transactions are submitted and no contracts are deployed. Connect your wallet to Mantle Mainnet to deploy real guards.
+</Note>
+
+When connected to a live wallet on Mantle Mainnet, clicking **Deploy vault guard on Mantle** submits a transaction to the network. The resulting transaction hash is written to the Proof Log immediately.
+
+## Default guards
+
+MantleScope includes three pre-configured guards to illustrate common protection patterns:
+
+```
+MNT/USDC LP guard   — Agni Finance   — pause if MNT price ≤ $0.72
+mETH staking guard  — Mantle LST     — alert if health factor ≤ 1.5
+USDC lending guard  — Lendle         — withdraw if utilisation ≥ 90%
+```
+
+<CardGroup cols={2}>
+  <Card title="Vault Guard feature guide" icon="shield-halved" href="/features/vault-guard">
+    Step-by-step guide for creating and managing guards.
+  </Card>
+  <Card title="Onchain proof log" icon="file-lines" href="/reference/onchain-proof-log">
+    How guard actions are recorded as immutable transactions.
+  </Card>
+</CardGroup>

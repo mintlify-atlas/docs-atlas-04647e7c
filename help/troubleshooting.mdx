@@ -1,0 +1,79 @@
+---
+title: "Troubleshooting MantleScope connection issues"
+description: "Resolve common problems with wallet connection, wrong network warnings, missing balances, and Vault Guard deployment failures in MantleScope."
+---
+
+Most MantleScope issues relate to wallet configuration or network selection. This page covers the most common problems and how to fix them.
+
+## Wrong network warning
+
+**Symptom:** A yellow banner appears at the top of the dashboard: _"Wrong network — needs Mantle Mainnet."_
+
+**Fix:** Click the **Switch** button in the banner. MantleScope will call `wallet_switchEthereumChain` to move MetaMask to Mantle Mainnet (Chain ID 5000). If Mantle is not yet in your MetaMask network list, it will be added automatically — approve the prompt.
+
+<Warning>
+  If you dismiss the network prompt without switching, the banner will remain and MantleScope will not be able to fetch your balances. You must be on Mantle Mainnet for the app to function.
+</Warning>
+
+## MetaMask not detected
+
+**Symptom:** Clicking **Connect** shows _"MetaMask not found. Install from metamask.io"_
+
+**Fix:** Install the [MetaMask browser extension](https://metamask.io). After installing and creating or importing a wallet, refresh the MantleScope page and try connecting again.
+
+<Tip>
+  If you don't want to install MetaMask, use **Continue with demo data** to explore all features with simulated data.
+</Tip>
+
+## Wallet connection rejected
+
+**Symptom:** MetaMask shows a request but you declined, and the status reads _"Rejected."_
+
+**Fix:** Click **Connect** again and approve the MetaMask prompt. MantleScope only requests your public address — it does not ask for signing permissions or transaction approval at this stage.
+
+## Balances show zero or dashes
+
+**Symptom:** MNT and ETH balances display `—` or `0.0000` after connecting.
+
+**Causes and fixes:**
+- You are on the wrong network — switch to Mantle Mainnet (see above).
+- Your wallet genuinely has no MNT on Mantle. Bridge or transfer MNT to your Mantle address first.
+- The RPC is temporarily unavailable. Wait 30 seconds for the next automatic refresh, or reload the page.
+
+## Risk score shows `—`
+
+**Symptom:** The risk score ring is empty and the score displays a dash.
+
+**Fix:** This appears before your first balance fetch completes. Wait a few seconds after connecting — the score populates automatically once balances and prices are loaded.
+
+## Prices not updating
+
+**Symptom:** MNT or ETH prices appear stale or show the fallback values ($0.92 / $2,840).
+
+**Cause:** The CoinGecko public API is rate-limited or unreachable.
+
+**Fix:** MantleScope will retry automatically every 30 seconds. If prices remain stuck, check your network connection or try refreshing the page.
+
+## Vault Guard not deploying
+
+**Symptom:** Clicking **Deploy vault guard on Mantle** does nothing or MetaMask does not show a transaction prompt.
+
+**Causes and fixes:**
+- You are in demo mode — guards are simulated. Connect a real wallet to deploy onchain.
+- MetaMask popup was blocked by your browser. Allow popups for the MantleScope domain.
+- Insufficient MNT for gas — ensure your wallet has some MNT on Mantle for the deployment transaction.
+
+## Page reloads unexpectedly
+
+**Symptom:** The app reloads when you switch networks in MetaMask.
+
+**Cause:** This is intentional. MantleScope listens for MetaMask's `chainChanged` event and reloads to ensure all state is consistent with the new network.
+
+<CardGroup cols={2}>
+  <Card title="FAQ" icon="circle-question" href="/help/faq">
+    Answers to common questions about MantleScope.
+  </Card>
+  <Card title="Connecting your wallet" icon="wallet" href="/connecting-wallet">
+    Step-by-step wallet setup guide.
+  </Card>
+</CardGroup>

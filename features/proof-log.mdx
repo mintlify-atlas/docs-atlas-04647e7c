@@ -1,0 +1,129 @@
+---
+title: "Using the MantleScope onchain proof log"
+description: "Every AI decision and vault guard action in MantleScope is written to Mantle as a permanent transaction, forming a tamper-proof chronological audit trail."
+---
+
+The Proof Log is MantleScope's immutable record of everything the AI engine and vault guard contracts have done. Every wallet scan, risk score update, anomaly detection, and guard action produces a transaction on Mantle Mainnet. Each entry in the log links to the transaction hash on the Mantle block explorer so you can independently verify any action that was taken on your behalf.
+
+## Log entry anatomy
+
+Each entry in the proof log contains three fields displayed in a compact row:
+
+<CardGroup cols={2}>
+  <Card title="Transaction hash" icon="fingerprint">
+    A truncated hash in the format `0x[4 chars]…[4 chars]` (e.g., `0x8f2a…1c3d`). Clicking the hash opens the full transaction on the Mantle Explorer at `https://explorer.mantle.xyz/tx/[hash]`.
+  </Card>
+  <Card title="Description" icon="file-lines">
+    A plain-language summary of what happened, composed of dot-separated segments (e.g., "Risk score updated · 61 to 72 · deposit event"). The format always identifies the action, the values involved, and the triggering event.
+  </Card>
+  <Card title="Timestamp" icon="clock">
+    A relative time label such as "now", "1 hr ago", "1 day ago", or "2 days ago". In live mode this reflects the actual block time of the transaction.
+  </Card>
+</CardGroup>
+
+## Sample log entries
+
+The following entries appear by default and represent the kinds of events MantleScope records:
+
+| Hash | Description | Time |
+|------|-------------|------|
+| `0x8f2a…1c3d` | Wallet connected · initial scan complete | now |
+| `0x4e9b…7a12` | Vault guard set · MNT/USDC pause at \$0.72 | 1 hr ago |
+| `0x2c71…9f44` | Risk score updated · 61 to 72 · deposit event | 1 day ago |
+| `0xab3c…2e80` | Anomaly model · fee spike detected · monitoring | 1 day ago |
+| `0x7d55…4b91` | IL detector · MNT/USDC drift −1.2% from entry | 2 days ago |
+
+Each entry illustrates a different category of event the log captures:
+
+<AccordionGroup>
+  <Accordion title="0x8f2a…1c3d — wallet connected" icon="wallet" defaultOpen={false}>
+    The initial scan entry is written when a wallet connects and the risk engine completes its first evaluation. It confirms that the system has read your balances and computed a risk score. The same event fires when demo mode is entered.
+  </Accordion>
+  <Accordion title="0x4e9b…7a12 — vault guard set" icon="shield-halved">
+    Written immediately when a [Vault Guard](/features/vault-guard) contract is deployed. The description encodes the asset, the action, and the threshold so the guard's configuration is permanently visible in the log even if the guard is later deleted or modified.
+  </Accordion>
+  <Accordion title="0x2c71…9f44 — risk score updated" icon="gauge">
+    Written when a deposit or withdrawal event changes the portfolio composition enough to shift the risk score. The description records both the previous score (61) and the new score (72) alongside the triggering event type ("deposit event"), giving a clear before/after audit point.
+  </Accordion>
+  <Accordion title="0xab3c…2e80 — anomaly model" icon="radar">
+    Written when the anomaly detection model observes an unusual on-chain event — in this case, a fee spike. The status "monitoring" indicates the event has been flagged but has not yet crossed the threshold for an automated guard action. If the anomaly escalates, a follow-up entry would record the guard response.
+  </Accordion>
+  <Accordion title="0x7d55…4b91 — IL detector" icon="arrows-left-right">
+    Written by the impermanent loss (IL) detector when an LP position's current price drifts beyond a configurable percentage from the entry price. Here, the MNT/USDC position has drifted −1.2 % from entry, producing an early warning before significant IL accumulates.
+  </Accordion>
+</AccordionGroup>
+
+## What generates a log entry
+
+<Tabs>
+  <Tab title="Wallet events">
+    - Initial wallet connection and scan
+    - Wallet address change (account switch in MetaMask)
+    - Disconnect
+  </Tab>
+  <Tab title="AI decisions">
+    - Risk score recalculation that crosses a band boundary (e.g., low → medium)
+    - Anomaly model detects an unusual fee, liquidity, or price event
+    - IL detector flags LP price drift beyond threshold
+  </Tab>
+  <Tab title="Vault guard actions">
+    - New guard deployed (records asset, action, condition, threshold, protocol)
+    - Guard fires and executes a pause, alert, or withdrawal
+    - Guard toggled on or off by the user
+  </Tab>
+</Tabs>
+
+## Verifying a log entry
+
+<Steps>
+  <Step title="Locate the entry">
+    Scroll through the Proof Log to find the entry you want to verify. Entries are ordered newest first.
+  </Step>
+  <Step title="Click the transaction hash">
+    The truncated hash (e.g., `0x8f2a…1c3d`) is a clickable link. Clicking it opens the full transaction in the Mantle Explorer at `https://explorer.mantle.xyz`.
+  </Step>
+  <Step title="Inspect the transaction">
+    In the explorer you can verify the block number, timestamp, sender address, and any calldata that records the action. For vault guard executions, the calldata encodes the guard parameters.
+  </Step>
+</Steps>
+
+<Info>
+In demo mode, log entries are displayed with static hashes that are not real Mantle transactions. The links will return a "transaction not found" error in the explorer. Connect a real wallet to generate verifiable onchain entries.
+</Info>
+
+## Exporting the log
+
+Click **Export CSV** in the card header to download the current log as a comma-separated file. The export includes all three fields (hash, description, timestamp) and is useful for:
+
+- Sharing the audit trail with a compliance officer or auditor
+- Maintaining an off-chain record alongside the onchain data
+- Analysing guard firing frequency over time
+
+<Tip>
+Export the CSV before disconnecting a wallet or clearing browser data. The in-app log is populated on each session from on-chain data, but the CSV gives you an offline snapshot with human-readable descriptions.
+</Tip>
+
+## Immutability guarantee
+
+Once a transaction is included in a Mantle block, it cannot be altered or deleted. The Proof Log derives its immutability guarantee from Mantle's own consensus. Even if MantleScope were taken offline, all recorded entries would remain independently accessible via the Mantle Explorer using the stored transaction hashes.
+
+<Note>
+The description text in each log entry is stored as calldata in the transaction. Calldata is immutable and permanently part of the Mantle chain state, so the human-readable description is as tamper-proof as the hash itself.
+</Note>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Every guard deployment and action generates a proof log entry automatically.
+  </Card>
+  <Card title="Alerts" icon="bell" href="/features/alerts">
+    AI-generated alerts that lead to guard actions are also visible in the alert feed before the log entry is written.
+  </Card>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    The initial wallet scan that creates the first log entry is triggered from the dashboard on connection.
+  </Card>
+  <Card title="Positions" icon="bars-progress" href="/features/positions">
+    Deposit and withdrawal events that shift the risk score and trigger log entries originate from position changes.
+  </Card>
+</CardGroup>

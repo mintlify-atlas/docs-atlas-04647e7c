@@ -1,0 +1,82 @@
+---
+title: "Connect MetaMask to MantleScope"
+description: "Install MetaMask, add Mantle Mainnet, and connect your wallet to MantleScope so you can monitor live positions and deploy Vault Guards."
+---
+
+MantleScope connects to your wallet through the MetaMask browser extension using the standard `window.ethereum` provider. When you connect, MantleScope checks your current network and switches to Mantle Mainnet automatically if needed — you do not have to configure the network manually.
+
+<Info>
+  If you prefer not to connect a wallet, you can use **Demo mode** instead. Click **Continue with demo data** on the connect screen to explore the full dashboard, positions, simulator, and Vault Guard features with a preloaded portfolio. No MetaMask required.
+</Info>
+
+## Connect your wallet
+
+<Steps>
+  <Step title="Install MetaMask">
+    If you do not already have MetaMask installed, download it from [metamask.io](https://metamask.io) and follow the setup instructions to create or import a wallet. MetaMask is available as a browser extension for Chrome, Firefox, Brave, and Edge.
+
+    Once installed, the MetaMask fox icon appears in your browser toolbar and `window.ethereum` is available on any page you visit.
+  </Step>
+
+  <Step title="Connect to MantleScope">
+    Open MantleScope in your browser. On the connect screen, click the **MetaMask** button.
+
+    MetaMask will show a connection prompt listing your accounts. Select the account you want to use and click **Connect**. MantleScope receives your public address — your private key is never shared.
+
+    If MetaMask is not detected, a status message reads: _MetaMask not found. Install from metamask.io._
+  </Step>
+
+  <Step title="Switch to Mantle Mainnet">
+    After you approve the connection, MantleScope checks your active chain. If you are not already on Mantle Mainnet (Chain ID 5000), MantleScope automatically triggers a network switch:
+
+    1. It calls `wallet_switchEthereumChain` with Chain ID `0x1388`.
+    2. If Mantle is not yet in your MetaMask network list, it calls `wallet_addEthereumChain` to add the network automatically using the configuration below.
+    3. MetaMask shows a prompt — click **Approve** or **Switch** to confirm.
+
+    Once on the correct network, MantleScope proceeds to load your dashboard.
+
+    <Warning>
+      If you dismiss the network switch prompt without approving it, a yellow banner appears at the top of the app: **Wrong network — needs Mantle Mainnet.** Click the **Switch** button in the banner to retry the switch at any time. MantleScope will not display balances or a risk score until you are connected to Mantle Mainnet (Chain ID 5000).
+    </Warning>
+  </Step>
+
+  <Step title="Verify the connection">
+    When connected successfully, the top-right wallet button turns green and displays a shortened version of your address (e.g. `0xaBcD…1234`). If your address has an ENS name registered on Ethereum mainnet, MantleScope resolves it and displays the name instead.
+
+    The sidebar footer shows **Mantle Network** with a pulsing green dot and the current block number, confirming a live connection to the chain.
+  </Step>
+</Steps>
+
+## Mantle network configuration
+
+MantleScope adds Mantle Mainnet to MetaMask automatically. If you ever need to add it manually, use these settings:
+
+| Field | Value |
+|---|---|
+| Network name | Mantle |
+| Chain ID | 5000 (`0x1388`) |
+| Currency symbol | MNT |
+| Currency decimals | 18 |
+| RPC URL (primary) | `https://rpc.ankr.com/mantle` |
+| RPC URL (fallback) | `https://rpc.mantle.xyz` |
+| Block explorer | `https://explorer.mantle.xyz` |
+
+## Wallet dropdown
+
+Once connected, clicking the wallet button in the top bar opens a dropdown with the following options:
+
+- **ENS name** — Shown at the top of the dropdown if your address resolves to an ENS name on Ethereum mainnet. ENS resolution runs in the background via a Cloudflare Ethereum mainnet endpoint.
+- **Copy address** — Copies your full checksummed address to the clipboard. The button text briefly changes to _Copied!_ to confirm.
+- **View on explorer** — Opens `https://explorer.mantle.xyz/address/<your-address>` in a new tab.
+- **Disconnect** — Clears your session and returns you to the connect screen. Your wallet itself is not affected; this only ends the MantleScope session.
+
+## Wallet events
+
+MantleScope listens for two MetaMask events throughout your session:
+
+- **`accountsChanged`** — If you switch accounts in MetaMask, MantleScope updates the displayed address, clears the ENS name, and re-fetches balances for the new account. If you remove all connected accounts, MantleScope disconnects automatically.
+- **`chainChanged`** — If you switch networks in MetaMask, the page reloads to ensure all data is fetched from the correct chain.
+
+## Next steps
+
+Now that your wallet is connected, follow the [Quickstart](/quickstart) to review your risk score and set up your first Vault Guard.

@@ -1,0 +1,47 @@
+---
+title: "Onchain proof log reference"
+description: "Every AI decision and Vault Guard action in MantleScope is written to Mantle as an immutable transaction. This page explains the log format and entry types."
+---
+
+The MantleScope Proof Log is an immutable audit trail stored on Mantle Network. Every significant event — wallet connections, risk score changes, Vault Guard deployments, anomaly detections — generates a transaction on Mantle whose hash appears in the log. You can verify any entry by clicking its hash to open it in the Mantle block explorer.
+
+## Log entry format
+
+Each entry in the Proof Log has three fields:
+
+| Field | Description | Example |
+|---|---|---|
+| **Transaction hash** | Truncated Mantle tx hash, links to explorer | `0x8f2a…1c3d` |
+| **Description** | Human-readable summary of the event | `Vault guard set · MNT/USDC pause at $0.72` |
+| **Timestamp** | Relative time since the event | `1 hr ago` |
+
+Click any transaction hash to open it in the [Mantle Explorer](https://explorer.mantle.xyz).
+
+## Entry types
+
+| Event type | Example description |
+|---|---|
+| Wallet connected | `Wallet connected · initial scan complete` |
+| Vault guard created | `Vault guard set · MNT/USDC pause at $0.72` |
+| Risk score updated | `Risk score updated · 61 to 72 · deposit event` |
+| Anomaly detected | `Anomaly model · fee spike detected · monitoring` |
+| Impermanent loss | `IL detector · MNT/USDC drift -1.2% from entry` |
+
+## Exporting the log
+
+Use the **Export CSV** button at the top of the Proof Log page to download all entries as a comma-separated file for record-keeping or analysis.
+
+## Demo mode
+
+<Note>
+  In demo mode, log entries display pre-populated hashes and descriptions that illustrate what the log looks like. No actual transactions exist on Mantle for these demo entries.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Proof Log feature guide" icon="file-lines" href="/features/proof-log">
+    How to use the Proof Log in the MantleScope dashboard.
+  </Card>
+  <Card title="Vault Guard contracts" icon="shield-halved" href="/reference/vault-guard-contracts">
+    Technical reference for Vault Guard configuration.
+  </Card>
+</CardGroup>

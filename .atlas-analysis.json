@@ -1,0 +1,97 @@
+{
+  "projectType": "saas",
+  "projectName": "MantleScope",
+  "projectDescription": "An AI-powered onchain DeFi portfolio risk intelligence tool built on Mantle Network that monitors positions in real time, scores risk, and triggers automated vault guard protections.",
+  "theme": "luma",
+  "primaryColor": "#5de8a0",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "connecting-wallet"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/dashboard",
+              "features/positions",
+              "features/alerts",
+              "features/simulator",
+              "features/vault-guard",
+              "features/proof-log"
+            ]
+          },
+          {
+            "group": "Risk Intelligence",
+            "pages": [
+              "risk/risk-scoring",
+              "risk/ai-engine",
+              "risk/anomaly-detection"
+            ]
+          },
+          {
+            "group": "Protocols & Integrations",
+            "pages": [
+              "integrations/supported-protocols",
+              "integrations/mantle-network",
+              "integrations/price-feeds"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Technical Reference",
+            "pages": [
+              "reference/vault-guard-contracts",
+              "reference/onchain-proof-log",
+              "reference/demo-mode"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": [
+              "help/faq",
+              "help/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time DeFi position monitoring on Mantle Network",
+    "AI-powered risk scoring (0-100) with concentration and liquidation analysis",
+    "Vault Guard smart contracts for autonomous onchain asset protection",
+    "Scenario simulator for stress-testing portfolio under market conditions",
+    "Immutable onchain proof log for all AI decisions and vault guard actions",
+    "Live MNT and ETH price feeds via CoinGecko",
+    "MetaMask wallet integration with ENS resolution",
+    "Support for Agni Finance, Lendle, Mantle LST, and Init Capital protocols",
+    "Real-time alert feed with severity-based notifications",
+    "Demo mode for exploring features without a wallet"
+  ],
+  "publicApiSurface": [
+    "connectWallet() — connect MetaMask and load Mantle portfolio",
+    "loadDemo() — load simulated demo portfolio data",
+    "switchToMantle() — switch or add Mantle network in MetaMask",
+    "fetchBalances() — fetch MNT/ETH balances for connected wallet",
+    "fetchPrices() — fetch live MNT and ETH prices from CoinGecko",
+    "calcScore(mnt, eth) — compute portfolio risk score 10-95",
+    "updateSim() — run scenario simulation with price/volatility sliders",
+    "createGuard() — deploy a new vault guard rule",
+    "toggleVault(input) — enable or pause an existing vault guard",
+    "navigate(id, el) — switch between dashboard pages"
+  ]
+}

@@ -1,0 +1,64 @@
+---
+title: "Supported DeFi protocols on MantleScope"
+description: "MantleScope monitors positions and deploys Vault Guards across Agni Finance, Lendle, Mantle LST, and Init Capital on Mantle Network."
+---
+
+MantleScope integrates with the major DeFi protocols on Mantle Network so you can monitor every position and set automated Vault Guards from a single dashboard. Each protocol exposes different position types — LP, lending, staking — and MantleScope surfaces health factors and risk metrics for all of them.
+
+## Supported protocols
+
+<CardGroup cols={2}>
+  <Card title="Agni Finance" icon="droplet">
+    Mantle's primary AMM DEX. MantleScope tracks MNT/USDC LP positions and monitors for impermanent loss drift and price-based guard triggers.
+  </Card>
+  <Card title="Lendle" icon="building-columns">
+    Lending protocol on Mantle. MantleScope tracks USDC lending positions and can trigger withdrawal when pool utilisation exceeds a threshold you set.
+  </Card>
+  <Card title="Mantle LST" icon="layer-group">
+    Mantle's liquid staking protocol for mETH. MantleScope monitors your mETH staking position's health factor and fires alerts or pauses when it drops too low.
+  </Card>
+  <Card title="Init Capital" icon="circle-nodes">
+    Capital-efficient lending on Mantle. Available as a protocol target when creating new Vault Guard rules.
+  </Card>
+</CardGroup>
+
+## Assets and guard actions by protocol
+
+| Protocol | Tracked assets | Available guard actions |
+|---|---|---|
+| Agni Finance | MNT/USDC LP | Pause position, Alert only, Withdraw |
+| Lendle | USDC | Pause position, Alert only, Withdraw |
+| Mantle LST | mETH | Pause position, Alert only, Withdraw |
+| Init Capital | MNT, USDC | Pause position, Alert only, Withdraw |
+
+## Vault Guard trigger conditions
+
+Every Vault Guard rule combines an asset, a condition, a threshold, and an action. The available conditions are:
+
+| Condition | Description | Example |
+|---|---|---|
+| `price ≤` | Fires when the asset price drops to or below the threshold | MNT ≤ $0.72 |
+| `health ≤` | Fires when the position health factor drops to or below the threshold | health ≤ 1.5 |
+| `concentration ≥` | Fires when the asset's portfolio share reaches the threshold | concentration ≥ 80% |
+| `risk score ≥` | Fires when your overall risk score reaches the threshold | risk score ≥ 75 |
+
+## Default guard examples
+
+MantleScope ships with three illustrative guard configurations to show you how guards work:
+
+- **MNT/USDC LP guard** — Agni Finance: pause position if MNT price ≤ $0.72
+- **mETH staking guard** — Mantle LST: alert if health factor ≤ 1.5
+- **USDC lending guard** — Lendle: withdraw if utilisation ≥ 90%
+
+<Note>
+  In demo mode, guards are simulated and no transactions are submitted. Connect your wallet to deploy real Vault Guard contracts on Mantle Mainnet.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Create and manage automated protection rules for your positions.
+  </Card>
+  <Card title="Mantle Network" icon="network-wired" href="/integrations/mantle-network">
+    Learn how MantleScope connects to Mantle Network.
+  </Card>
+</CardGroup>

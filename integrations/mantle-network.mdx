@@ -1,0 +1,70 @@
+---
+title: "Mantle Network integration in MantleScope"
+description: "How MantleScope connects to Mantle Network for live block data, balance fetching, and onchain Vault Guard deployment via ethers.js v6."
+---
+
+MantleScope is built natively for Mantle Network. Every balance lookup, block update, and Vault Guard deployment targets Mantle Mainnet (Chain ID 5000). The app uses ethers.js v6 and MetaMask's injected provider when available, falling back to Ankr's public Mantle RPC for read-only data.
+
+## Network configuration
+
+| Parameter | Value |
+|---|---|
+| Network name | Mantle |
+| Chain ID (decimal) | 5000 |
+| Chain ID (hex) | `0x1388` |
+| Primary RPC | `https://rpc.ankr.com/mantle` |
+| Fallback RPC | `https://rpc.mantle.xyz` |
+| Block explorer | `https://explorer.mantle.xyz` |
+| Native currency | MNT |
+| Decimals | 18 |
+| Block time | ~4 seconds |
+
+## How MantleScope uses the network
+
+**Balance fetching** — After connecting, MantleScope calls `eth_getBalance` for your wallet address to retrieve your MNT balance. Balances refresh automatically every 60 seconds.
+
+**Block tracking** — The sidebar shows the current Mantle block number, updated every 4 seconds using `eth_blockNumber`. A live green dot animates when the connection is active.
+
+**Vault Guard deployment** — When you deploy a Vault Guard in your connected wallet, the transaction is submitted to Mantle Mainnet and the resulting tx hash appears in the Proof Log.
+
+## Provider selection
+
+MantleScope prefers the MetaMask browser provider when a wallet is connected, which avoids CORS issues and uses the user's own RPC endpoint. For block number polling with no wallet connected, it uses the Ankr public endpoint directly via a raw `fetch` call.
+
+```javascript
+function mantleProvider() {
+  if (window.ethereum && S.address) {
+    return new ethers.BrowserProvider(window.ethereum);
+  }
+  return new ethers.JsonRpcProvider(
+    'https://rpc.ankr.com/mantle',
+    new ethers.Network('mantle', 5000),
+    { staticNetwork: new ethers.Network('mantle', 5000) }
+  );
+}
+```
+
+## Adding Mantle to MetaMask automatically
+
+If your MetaMask wallet does not have Mantle configured, MantleScope calls `wallet_addEthereumChain` to add it silently. You only need to approve the prompt once.
+
+```javascript
+await window.ethereum.request({
+  method: 'wallet_addEthereumChain',
+  params: [{
+    chainId: '0x1388',
+    chainName: 'Mantle',
+    nativeCurrency: { name: 'MNT', symbol: 'MNT', decimals: 18 },
+    rpcUrls: ['https://rpc.ankr.com/mantle', 'https://rpc.mantle.xyz'],
+    blockExplorerUrls: ['https://explorer.mantle.xyz']
+  }]
+});
+```
+
+<Tip>
+  If you switch away from Mantle while MantleScope is open, the page reloads automatically to re-sync with the correct network state.
+</Tip>
+
+<Card title="Connect your wallet" icon="wallet" href="/connecting-wallet">
+  Step-by-step guide for connecting MetaMask to MantleScope.
+</Card>

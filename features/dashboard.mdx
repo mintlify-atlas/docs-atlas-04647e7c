@@ -1,0 +1,169 @@
+---
+title: "Reading your MantleScope risk dashboard"
+description: "The MantleScope dashboard surfaces your real-time risk score, MNT and ETH balances, liquidation risk, concentration, and an AI-generated insight in one view."
+---
+
+The dashboard is the first screen you see after connecting your wallet or entering demo mode. It runs `calcScore` against your live MNT and ETH balances every 60 seconds, paints a ring that reflects your 0–100 risk score in green, amber, or red, and feeds the result through the AI insight engine so you always know what action, if any, is needed.
+
+## Risk score ring
+
+The score ring is an SVG circle whose `stroke-dasharray` maps your score linearly onto a 0–251 arc. Color coding matches three risk bands:
+
+| Score | Band | Color |
+|-------|------|-------|
+| 70 – 100 | Low risk | `#5de8a0` (accent green) |
+| 40 – 69 | Medium risk | `#f5a623` (amber) |
+| 0 – 39 | High risk | `#ff4d4d` (red) |
+
+<Note>
+The score is clamped to a minimum of 10 and a maximum of 95, so the ring never reads exactly 0 or 100. Edge cases like an empty wallet default to 72 (low risk) until real balances load.
+</Note>
+
+## Score calculation
+
+```javascript calcScore
+function calcScore(mnt, eth) {
+  var total = mnt * mntPrice + eth * ethPrice;
+  if (!total) return 72;
+  var conc = (mnt * mntPrice) / total;
+
+  // Price risk component
+  var pr =
+    mntPrice < 0.3 ? 35 :
+    mntPrice < 0.5 ? 25 :
+    mntPrice < 0.8 ? 15 :
+    mntPrice < 1   ? 10 : 5;
+
+  // Concentration risk component
+  var cr =
+    conc > 0.85 ? 35 :
+    conc > 0.65 ? 20 :
+    conc > 0.45 ? 10 : 5;
+
+  return Math.max(10, Math.min(95, Math.round(100 - pr - cr)));
+}
+```
+
+Both the price risk penalty (`pr`) and the concentration risk penalty (`cr`) are subtracted from 100. A wallet holding MNT priced above \$1.00 with less than 45 % concentration pays only a combined 10-point penalty and scores 90.
+
+## Stats grid
+
+<CardGroup cols={2}>
+  <Card title="Total value" icon="dollar-sign">
+    Sum of `mntBalance × mntPrice + ethBalance × ethPrice`, displayed in USD. Refreshes every 60 seconds from live on-chain balances and CoinGecko prices.
+  </Card>
+  <Card title="MNT balance" icon="coins">
+    Native MNT balance read directly from the Mantle Mainnet RPC via `ethers.getBalance`. Displayed to two decimal places.
+  </Card>
+  <Card title="ETH balance" icon="ethereum">
+    ETH balance representing tokens bridged via the Mantle Bridge. Displayed to four decimal places.
+  </Card>
+  <Card title="Network" icon="network-wired">
+    Shows **Mantle** when connected to chain ID `0x1388`, or **Demo** in demo mode. The label turns green when the wallet is on the correct network.
+  </Card>
+</CardGroup>
+
+## Secondary stats
+
+<Tabs>
+  <Tab title="Liquidation risk">
+    Derived from the risk score:
+
+    - Score > 70 → **None**
+    - Score 41–70 → **Low**
+    - Score ≤ 40 → **Medium**
+
+    The sub-label always shows the current score out of 100 (e.g., "Score 72 / 100").
+  </Tab>
+  <Tab title="Concentration">
+    MNT share of the total portfolio value expressed as a percentage. Color-coded the same way as the risk ring: above 70 % triggers red, above 50 % triggers amber, otherwise green. The sub-label reads "MNT share of portfolio".
+  </Tab>
+  <Tab title="MNT price">
+    Live MNT/USD price polled from the CoinGecko `/simple/price` endpoint every 30 seconds. The 24-hour percentage change appears below in green (positive) or red (negative).
+  </Tab>
+  <Tab title="Anomaly score">
+    A static model output of **0.04** indicating normal on-chain activity. Values this low mean no unusual fee spikes, liquidity withdrawals, or protocol anomalies have been detected. The [Proof Log](/features/proof-log) records anomaly events when the score rises.
+  </Tab>
+</Tabs>
+
+## AI insight panel
+
+The AI insight text is generated directly from the score band and the live balances. There are three possible messages:
+
+<AccordionGroup>
+  <Accordion title="Low risk (score ≥ 70)" icon="circle-check">
+    > "Your wallet holds X MNT at \$Y. Risk is low. MNT is Z% of portfolio. Monitor for drops below \$[0.75 × current price]."
+
+    The suggested watch price is calculated at runtime as `mntPrice × 0.75` so it scales with current market conditions.
+  </Accordion>
+  <Accordion title="Medium risk (score 40–69)" icon="triangle-exclamation">
+    > "Risk score X/100. MNT concentration of Z% is elevated. Consider a vault guard trigger at \$[0.72 × current price]."
+
+    The suggested vault guard threshold is `mntPrice × 0.72`. You can set this value directly in [Vault Guard](/features/vault-guard) without leaving the dashboard — use the "View all" link under Positions or the sidebar.
+  </Accordion>
+  <Accordion title="High risk (score < 40)" icon="circle-xmark">
+    > "High risk. MNT concentration of Z% with current prices creates significant exposure. Reduce MNT and enable vault guards."
+
+    At this score band the dashboard shows an amber alert in the [Alerts](/features/alerts) feed and the sidebar badge increments.
+  </Accordion>
+</AccordionGroup>
+
+## Connection modes
+
+<Tabs>
+  <Tab title="Live (MetaMask)">
+    When connected to Mantle Mainnet (chain ID 5000), the dashboard shows a blinking **Live · Mantle** badge next to the risk label. Balances are read on-chain and prices are polled from CoinGecko. The sidebar chain dot pulses green and the current block number updates every 4 seconds.
+
+    <Info>
+      If MetaMask is on the wrong network, a banner appears at the top of the page. Clicking **Switch** calls `wallet_switchEthereumChain` and adds the Mantle network to MetaMask automatically if it is not already present.
+    </Info>
+  </Tab>
+  <Tab title="Demo mode">
+    Demo mode injects fixed balances (12,400 MNT, 4.82 ETH) and starting prices (\$0.92 MNT, \$2,840 ETH) without requiring a wallet. Prices drift slightly every 6 seconds to simulate a live feed. The risk label shows a static **Demo mode** tag in amber instead of the live badge. Block number increments randomly every 4 seconds.
+
+    <Warning>
+      Vault guard contracts created in demo mode are simulated and are not deployed on Mantle Mainnet. Connect a real wallet to deploy live guards.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Positions preview
+
+The bottom of the dashboard shows a condensed card for each position (MNT native, ETH bridged). Each card includes the asset icon, protocol name, balance, USD value, and a colour-coded health bar. The **View all →** link navigates to the full [Positions](/features/positions) page.
+
+## How to use the dashboard
+
+<Steps>
+  <Step title="Connect your wallet or enter demo mode">
+    Click **Connect** in the top bar. MetaMask will prompt you to approve access and, if needed, switch to Mantle Mainnet. Alternatively, click **Continue with demo data** to explore without a wallet.
+  </Step>
+  <Step title="Read the risk score">
+    The ring and score label give you an immediate read on overall portfolio health. Green means low risk; amber means elevated concentration or price exposure; red means action is recommended.
+  </Step>
+  <Step title="Review the AI insight">
+    The insight panel under the stats grid explains the score in plain language and suggests a concrete price level to watch or a vault guard threshold to set.
+  </Step>
+  <Step title="Act on high-risk signals">
+    If the score is below 40, navigate to [Vault Guard](/features/vault-guard) to deploy an autonomous guard contract, or check the [Alerts](/features/alerts) feed for the specific trigger.
+  </Step>
+  <Step title="Stress-test a scenario">
+    Click **Stress test** in the top bar to open the [Simulator](/features/simulator) and see how the score would change under a projected MNT price drop or volatility spike.
+  </Step>
+</Steps>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Positions" icon="chart-bar" href="/features/positions">
+    View individual position health bars, protocol labels, and per-asset AI analysis.
+  </Card>
+  <Card title="Alerts" icon="bell" href="/features/alerts">
+    See all active AI-generated alerts and the sidebar badge count.
+  </Card>
+  <Card title="Simulator" icon="wave-pulse" href="/features/simulator">
+    Run price-change and volatility scenarios to preview score and health factor changes.
+  </Card>
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Deploy smart contracts that act automatically when thresholds are breached.
+  </Card>
+</CardGroup>

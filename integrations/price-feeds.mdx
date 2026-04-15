@@ -1,0 +1,75 @@
+---
+title: "Live price feeds and market data in MantleScope"
+description: "MantleScope pulls live MNT and ETH prices from CoinGecko every 30 seconds and uses them to recompute your portfolio risk score in real time."
+---
+
+MantleScope keeps your risk score current by fetching live MNT and ETH prices from the CoinGecko public API every 30 seconds. Price changes feed directly into the risk scoring algorithm — a falling MNT price raises your price-risk component and can shift your portfolio from low to high risk without any change in your holdings.
+
+## Data source
+
+| Parameter | Value |
+|---|---|
+| Provider | CoinGecko public API |
+| Endpoint | `https://api.coingecko.com/api/v3/simple/price` |
+| Coins | `mantle` (MNT), `ethereum` (ETH) |
+| Fields | `usd` (price), `usd_24h_change` (24 h % change) |
+| Update interval | Every 30 seconds |
+
+## Price fetch
+
+```javascript
+async function fetchPrices() {
+  try {
+    var r = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price' +
+      '?ids=mantle,ethereum&vs_currencies=usd&include_24hr_change=true'
+    );
+    if (!r.ok) throw 0;
+    var d = await r.json();
+    if (d.mantle) {
+      S.mntPrice = d.mantle.usd;
+      S.mntChange = d.mantle.usd_24h_change || 0;
+    }
+    if (d.ethereum) S.ethPrice = d.ethereum.usd;
+    renderPrices();
+  } catch (e) {
+    if (!S.mntPrice) S.mntPrice = 0.92;
+    if (!S.ethPrice) S.ethPrice = 2840;
+    renderPrices();
+  }
+}
+```
+
+## Fallback behaviour
+
+If the CoinGecko API is unreachable or returns an error, MantleScope falls back to hardcoded defaults so the dashboard remains functional:
+
+- MNT fallback price: **$0.92**
+- ETH fallback price: **$2,840**
+
+<Note>
+  When fallback prices are active, your risk score is still calculated — but it reflects the static fallback values, not the live market. The score will update as soon as prices resume fetching.
+</Note>
+
+## Where prices appear
+
+- **Topbar** — MNT price (4 decimal places) and ETH price update live every 30 seconds
+- **Dashboard stats** — MNT price with 24 h change coloured green (positive) or red (negative)
+- **Risk score** — Recalculated on every price update using the latest MNT price
+- **Simulator** — MNT price slider output is shown against the live base price
+
+## Impact on risk scoring
+
+The MNT price directly controls the price-risk component of your score. See the risk scoring page for the full tier breakdown.
+
+| MNT price | Price risk penalty |
+|---|---|
+| Below $0.30 | 35 points |
+| $0.30 – $0.49 | 25 points |
+| $0.50 – $0.79 | 15 points |
+| $0.80 – $0.99 | 10 points |
+| $1.00 and above | 5 points |
+
+<Card title="How risk scoring works" icon="chart-line" href="/risk/risk-scoring">
+  See exactly how price and concentration combine into your risk score.
+</Card>

@@ -1,0 +1,131 @@
+---
+title: "AI-generated risk alerts in MantleScope"
+description: "MantleScope's alert feed delivers colour-coded AI notifications for high risk scores, MNT concentration spikes, and wallet scan events in real time."
+---
+
+The Alerts page is a chronological feed of AI-generated notifications. Every time the risk engine re-evaluates your portfolio — on connect, on balance refresh, or on price update — it runs a rule set and appends new entries to the feed. Critical alerts are counted in the sidebar badge so you can spot problems from any page.
+
+## Alert types
+
+There are three alert classes, distinguished by a coloured dot on the left side of each entry:
+
+<CardGroup cols={2}>
+  <Card title="Danger (red dot)" icon="circle-exclamation">
+    Fired when the overall risk score drops below 50. Message: **"High risk — score X/100. Consider reducing MNT exposure."** The score value is injected at runtime.
+  </Card>
+  <Card title="Warning (amber dot)" icon="triangle-exclamation">
+    Fired when MNT's share of total portfolio value exceeds 70 %. Message: **"MNT concentration above 70% — portfolio heavily concentrated."**
+  </Card>
+  <Card title="Info (green dot)" icon="circle-check">
+    Always generated after a successful wallet scan. Message: **"Wallet scanned · [X] MNT · \$[total] total."** This confirms the engine has run and shows the scanned figures.
+  </Card>
+</CardGroup>
+
+<Note>
+Each render pass replaces the entire alert list. The feed always shows the current state of your portfolio at the time of the last refresh — it does not accumulate alerts from multiple sessions.
+</Note>
+
+## Alert logic
+
+Alerts are generated inside `renderPositions()`. The rule set evaluates in order:
+
+```javascript alerts
+var alerts = [];
+
+// Rule 1 — high risk score
+if (S.riskScore < 50) {
+  alerts.push({
+    c: 'var(--red)',
+    m: 'High risk — score ' + S.riskScore + '/100. Consider reducing MNT exposure.',
+    t: 'just now'
+  });
+}
+
+// Rule 2 — high concentration
+if (share > 70) {
+  alerts.push({
+    c: 'var(--amber)',
+    m: 'MNT concentration above 70% — portfolio heavily concentrated.',
+    t: 'just now'
+  });
+}
+
+// Rule 3 — scan info (always appended)
+alerts.push({
+  c: 'var(--accent)',
+  m: 'Wallet scanned · ' + mntBalance + ' MNT · $' + total + ' total.',
+  t: 'just now'
+});
+```
+
+Rules 1 and 2 can both fire in the same render pass. For example, a score of 42 with 78 % MNT concentration would produce two actionable alerts (one red, one amber) plus the green info entry.
+
+## Sidebar badge
+
+The **alertBadge** element in the sidebar navigation counts non-info alerts — that is, any alert with a red or amber dot. The badge displays a numeric count. When there are no actionable alerts, the count is blank. The mobile bottom-nav dot (a small red circle above the Alerts icon) mirrors this state: it appears when the count is non-zero and disappears when no actionable alerts exist.
+
+<Tip>
+Even when the badge shows zero, the Alerts page always has at least the green info entry from the most recent wallet scan. Navigate here after connecting to confirm that the risk engine ran successfully.
+</Tip>
+
+## Mark all read
+
+Clicking **Mark all read** in the card header dismisses the visual badge but does not delete the underlying alert entries. The next balance refresh will re-evaluate all rules and repopulate the feed.
+
+## Alert lifecycle
+
+<Steps>
+  <Step title="Wallet connects or demo loads">
+    `renderDashboard()` runs for the first time. `renderPositions()` is called with the initial balances, and the first set of alerts is written to the feed.
+  </Step>
+  <Step title="Price update (every 30 seconds)">
+    `fetchPrices()` updates `S.mntPrice` and `S.ethPrice`. `renderDashboard()` runs again, recalculates the score, and rebuilds the alert feed. If the score has crossed the 50-point threshold, a new danger alert appears.
+  </Step>
+  <Step title="Balance refresh (every 60 seconds)">
+    `fetchBalances()` reads the current on-chain MNT balance. `renderDashboard()` recalculates concentration and score, then rewrites the feed. Changes in MNT balance (e.g., after a deposit) can push concentration above or below the 70 % threshold.
+  </Step>
+  <Step title="User navigates to Alerts">
+    The page renders the current contents of the `alertList` element. No additional fetch is triggered on navigation.
+  </Step>
+</Steps>
+
+## Acting on alerts
+
+<AccordionGroup>
+  <Accordion title="Risk score below 50 (red alert)">
+    The score is low because `mntPrice` is under \$0.80 or because MNT concentration is above 65 %. To raise the score:
+
+    1. Check the current MNT price on the [Dashboard](/features/dashboard) stats grid.
+    2. If price is the driver, set a vault guard with a `price_lte` condition in [Vault Guard](/features/vault-guard) to pause or withdraw automatically.
+    3. If concentration is the driver, consider rebalancing into a less correlated asset.
+  </Accordion>
+  <Accordion title="MNT concentration above 70 % (amber alert)">
+    The MNT share calculation is `(mntBalance × mntPrice) / totalPortfolioValue`. Concentration rises when ETH falls in value or when MNT is bought without corresponding growth in other positions.
+
+    Open [Vault Guard](/features/vault-guard) and create a `conc_gte` guard to automatically pause or send an alert if concentration exceeds a chosen threshold in future.
+  </Accordion>
+  <Accordion title="Wallet scanned (green info)">
+    No action required. This entry confirms that the AI engine ran successfully and shows the balances it scanned. The same data is written to the [Proof Log](/features/proof-log) as an immutable onchain record.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+In demo mode, alerts are generated from the injected demo balances (12,400 MNT at \$0.92, 4.82 ETH at \$2,840). They accurately reflect the demo portfolio's risk state but do not represent a real wallet.
+</Warning>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    The risk score that drives red alerts originates from the dashboard's `calcScore` function.
+  </Card>
+  <Card title="Positions" icon="bars-progress" href="/features/positions">
+    Individual position health bars show the same risk state that generates alerts.
+  </Card>
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Automate a response to any alert condition with an onchain vault guard contract.
+  </Card>
+  <Card title="Proof Log" icon="file-lines" href="/features/proof-log">
+    Wallet scan events and AI decisions are recorded as immutable onchain log entries.
+  </Card>
+</CardGroup>

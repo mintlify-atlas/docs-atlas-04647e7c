@@ -1,0 +1,139 @@
+---
+title: "MantleScope AI risk engine"
+description: "How MantleScope's AI layer reads your live risk score and portfolio state to generate plain-language insights, simulator recommendations, and vault guard triggers."
+---
+
+The AI engine sits between the raw risk score and everything the user sees or acts on. After every score recalculation, the engine reads the current score band, MNT balance, ETH balance, and portfolio concentration, then writes a plain-language insight to the dashboard. The same logic powers the simulator's scenario recommendations and determines whether a vault guard contract should fire autonomously on Mantle.
+
+## How the engine generates insights
+
+The `renderDashboard()` function calls `calcScore()`, stores the result in `S.riskScore`, then selects one of three insight templates based on the score band. The text is written simultaneously to the dashboard AI panel and the Positions page analysis panel.
+
+<Tabs>
+  <Tab title="Low risk (score ≥ 70)">
+    Template:
+    ```text
+    Your wallet holds {mntBalance} MNT at {mntPrice}. Risk is low.
+    MNT is {share}% of portfolio. Monitor for drops below {mntPrice * 0.75}.
+    ```
+
+    **Example:** "Your wallet holds 12400.0 MNT at $0.9200. Risk is low. MNT is 82% of portfolio. Monitor for drops below $0.690."
+
+    The watch price is set at 75% of the current MNT spot price, giving a downside buffer before the score would drop into the medium band.
+  </Tab>
+  <Tab title="Medium risk (score 40–69)">
+    Template:
+    ```text
+    Risk score {score}/100. MNT concentration of {share}% is elevated.
+    Consider a vault guard trigger at {mntPrice * 0.72}.
+    ```
+
+    **Example:** "Risk score 61/100. MNT concentration of 74% is elevated. Consider a vault guard trigger at $0.662."
+
+    The suggested vault guard price is 72% of spot — the same threshold used in the default MNT/USDC LP guard deployed on Agni Finance.
+  </Tab>
+  <Tab title="High risk (score < 40)">
+    Template:
+    ```text
+    High risk. MNT concentration of {share}% with current prices creates
+    significant exposure. Reduce MNT and enable vault guards.
+    ```
+
+    **Example:** "High risk. MNT concentration of 91% with current prices creates significant exposure. Reduce MNT and enable vault guards."
+
+    No specific price target is offered because the engine treats the situation as requiring portfolio rebalancing rather than a single trigger point.
+  </Tab>
+</Tabs>
+
+<Note>
+  The `posInsight` text shown on the Positions page is identical to `aiInsight`. Both are set from the same variable in `renderPositions()`, so they update together on every data refresh.
+</Note>
+
+## Alert generation
+
+The engine also writes to the alert feed after each dashboard render. Alerts follow a priority colour convention:
+
+| Alert dot colour | Condition | Example message |
+|---|---|---|
+| Red | `riskScore < 50` | "High risk — score 38/100. Consider reducing MNT exposure." |
+| Amber | MNT share > 70% | "MNT concentration above 70% — portfolio heavily concentrated." |
+| Green | Always present | "Wallet scanned · 12400.00 MNT · $11,408 total." |
+
+The alert badge count on the sidebar only counts red and amber alerts, so the green informational entry never increments the badge.
+
+## Simulator AI recommendations
+
+When you move the sliders in the Scenario Simulator, the engine recalculates an adjusted risk score and selects one of three recommendation states.
+
+### Adjusted score formula
+
+```javascript
+var adj = Math.max(5, Math.min(99,
+  S.riskScore - mp * 0.35 - Math.abs(ep) * 0.08 + vol * 14 + time * 4
+));
+```
+
+| Parameter | Source | Effect per unit |
+|---|---|---|
+| `mp` | MNT price change % | −0.35 pts per 1% change |
+| `ep` | ETH price change % | −0.08 pts per 1% of absolute change |
+| `vol` | Volatility level (0/1/2) | +14 pts per level |
+| `time` | Time horizon (0/1/2/3) | +4 pts per level |
+
+A negative `mp` (price drop) lowers the adjusted score. Higher volatility and longer time horizons raise it, reflecting the increased probability of adverse events over time.
+
+### Recommendation states
+
+<Steps>
+  <Step title="Vault guard fires">
+    **Condition:** MNT price change ≤ −30% OR adjusted score \< 35
+
+    **UI state:** Red danger panel — "Vault guard fires — position paused onchain"
+
+    **AI text:** "MNT at [simulated price] triggers vault guard. Portfolio: [estimated value]."
+
+    The vault guard fires autonomously. No user action is required once a guard has been deployed.
+  </Step>
+  <Step title="Warning threshold">
+    **Condition:** MNT price change ≤ −15% OR adjusted score \< 55
+
+    **UI state:** Amber warning panel — "Warning threshold approaching"
+
+    **AI text:** "Risk elevated. AI increases monitoring. Consider rebalancing before the 72%-of-spot trigger price."
+
+    The engine suggests the same 72%-of-spot trigger price used in the default vault guard configuration.
+  </Step>
+  <Step title="Safe / no action">
+    **Condition:** Neither of the above is true
+
+    **UI state:** Green safe panel — "All guards inactive — safe"
+
+    **AI text:** "Portfolio healthy. Estimated value [total]. No vault guard needed."
+  </Step>
+</Steps>
+
+## How AI decisions feed into vault guards
+
+Every time the AI engine evaluates a scenario or detects a threshold crossing, it can trigger a vault guard contract. Guards support four condition types that map directly to the engine's tracked signals:
+
+| Condition type | What it monitors | Example threshold |
+|---|---|---|
+| `price_lte` | MNT spot price | ≤ $0.72 |
+| `health_lte` | Position health factor | ≤ 1.5 |
+| `conc_gte` | MNT portfolio concentration | ≥ 85% |
+| `risk_gte` | MantleScope risk score | ≥ 80 |
+
+When a guard fires, the contract executes the configured action (pause, alert-only, or withdraw) and writes an immutable entry to the proof log. The entry includes a transaction hash on Mantle so the decision is verifiable onchain.
+
+<Warning>
+  Vault guards act autonomously once deployed. If you set a `price_lte` guard and MNT falls through the threshold while you are offline, the contract will execute without further confirmation. Review your trigger prices carefully before deploying to mainnet.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Deploy and manage autonomous onchain guards with custom condition types and trigger actions.
+  </Card>
+  <Card title="Anomaly detection" icon="triangle-exclamation" href="/risk/anomaly-detection">
+    Learn how the engine detects fee spikes, impermanent loss drift, and unusual position health changes.
+  </Card>
+</CardGroup>

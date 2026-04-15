@@ -1,0 +1,51 @@
+---
+title: "Demo mode in MantleScope"
+description: "MantleScope's demo mode loads 12,400 MNT and 4.82 ETH as simulated balances so you can explore every feature without connecting a real wallet."
+---
+
+Demo mode gives you a full walkthrough of MantleScope without connecting a wallet. It loads a simulated portfolio with pre-set MNT and ETH balances, calculates a live risk score using real CoinGecko prices, and lets you interact with every feature — Vault Guards, the Simulator, Alerts, and the Proof Log.
+
+## Activating demo mode
+
+On the MantleScope connect screen, click **Continue with demo data →** below the MetaMask button. The dashboard loads immediately with no wallet prompt.
+
+## Demo data
+
+| Field | Value |
+|---|---|
+| MNT balance | 12,400 MNT |
+| ETH balance | 4.82 ETH |
+| MNT price | Live from CoinGecko (falls back to $0.92) |
+| ETH price | Live from CoinGecko (falls back to $2,840) |
+| Starting block | #7,291,044 |
+
+The block number increments by a random 1–3 every 4 seconds to simulate live chain activity. MNT and ETH prices fluctuate slightly every 6 seconds using a small random walk (±0.25% for MNT, ±0.15% for ETH) to mimic market movement.
+
+## What works in demo mode
+
+| Feature | Behaviour in demo mode |
+|---|---|
+| Dashboard | Fully functional — real risk score from live prices |
+| Positions | Shows MNT and ETH positions based on demo balances |
+| Alerts | Generated from demo risk score |
+| Simulator | Fully functional |
+| Vault Guard | Guards can be created and toggled; no onchain deployment |
+| Proof Log | Pre-populated with illustrative entries; no real txs |
+
+## Limitations
+
+<Warning>
+  Vault Guard contracts are simulated in demo mode. No transactions are submitted to Mantle Mainnet. Connect a real wallet to deploy live guards that execute autonomously onchain.
+</Warning>
+
+- Wallet address is not set; ENS resolution is unavailable
+- The Mantle explorer links in the Proof Log point to demo transaction hashes that do not exist on-chain
+- Balances do not reflect any real wallet
+
+## Switching to a live wallet
+
+Click the **Demo mode** label in the top-right wallet button and select **Disconnect** from the dropdown. You will be returned to the connect screen where you can link MetaMask.
+
+<Card title="Connect your wallet" icon="wallet" href="/connecting-wallet">
+  Set up MetaMask for Mantle Network and connect to MantleScope.
+</Card>

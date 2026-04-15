@@ -1,97 +1,64 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "MantleScope: AI-Powered Onchain Risk Intelligence"
+description: "MantleScope monitors your DeFi positions on Mantle Network in real time, scores portfolio risk with AI, and protects your assets automatically through Vault Guard contracts."
 ---
 
-## Setting up
+MantleScope is an AI-powered portfolio risk intelligence tool built on Mantle Network. It connects to your wallet, analyses your DeFi positions across protocols like Agni Finance, Lendle, and Mantle LST, and gives you a live risk score — then acts autonomously onchain to protect your assets when thresholds are breached.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Connect your wallet and get your first risk score in under two minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Connect your wallet" icon="wallet" href="/connecting-wallet">
+    Set up MetaMask for Mantle Network and link it to MantleScope.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Vault Guard" icon="shield-halved" href="/features/vault-guard">
+    Deploy autonomous onchain guards that protect positions automatically.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Risk scoring" icon="chart-line" href="/risk/risk-scoring">
+    Understand how MantleScope calculates your portfolio risk score.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What MantleScope does
 
-Everything you need to create world-class documentation.
+MantleScope brings together real-time blockchain data, live price feeds, and an AI risk engine into a single dashboard. When you connect your wallet, MantleScope immediately scans your Mantle positions, computes a risk score from 0 to 100, and surfaces actionable insights — all without your private keys ever leaving your browser.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={3}>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    Real-time portfolio overview with risk score ring and AI insights.
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Positions" icon="bars-progress" href="/features/positions">
+    Per-position health factors, balances, and protocol breakdown.
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Alerts" icon="bell" href="/features/alerts">
+    Live AI-generated alerts for risk events and threshold breaches.
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Simulator" icon="wave-pulse" href="/features/simulator">
+    Stress-test your portfolio against price drops and volatility spikes.
   </Card>
-</Columns>
+  <Card title="Proof Log" icon="file-lines" href="/features/proof-log">
+    Immutable onchain record of every AI decision and guard action.
+  </Card>
+  <Card title="Supported protocols" icon="plug" href="/integrations/supported-protocols">
+    Agni Finance, Lendle, Mantle LST, Init Capital, and more.
+  </Card>
+</CardGroup>
 
-## Need inspiration?
+## Get started in three steps
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Open MantleScope">
+    Navigate to the MantleScope app. If you don't have MetaMask installed, you can explore all features using **Demo mode** — no wallet required.
+  </Step>
+  <Step title="Connect your wallet">
+    Click **Connect** and approve the MetaMask prompt. MantleScope will automatically switch your wallet to Mantle Mainnet if needed.
+  </Step>
+  <Step title="Review your risk score">
+    Your portfolio is scanned instantly. Check your risk score on the Dashboard, review individual positions, and set up Vault Guard rules to protect your assets.
+  </Step>
+</Steps>
+
+<Note>
+  MantleScope operates entirely in your browser. Your private keys and seed phrase are never transmitted to any server.
+</Note>

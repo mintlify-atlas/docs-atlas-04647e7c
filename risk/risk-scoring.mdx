@@ -1,0 +1,107 @@
+---
+title: "How MantleScope calculates your risk score"
+description: "A breakdown of the two-component scoring algorithm that converts your MNT and ETH balances into a 10–95 risk score, updated on every block."
+---
+
+MantleScope converts your live on-chain balances into a single integer between 10 and 95. The score combines two independent penalty components — price risk and concentration risk — and is recalculated every time new price data or a balance change arrives from Mantle Network. A lower number means higher risk; a higher number means your portfolio is safer under current market conditions.
+
+## The scoring formula
+
+```javascript
+function calcScore(mnt, eth) {
+  var total = mnt * S.mntPrice + eth * S.ethPrice;
+  if (!total) return 72;
+  var conc = mnt * S.mntPrice / total;
+  var pr = S.mntPrice < 0.3 ? 35 : S.mntPrice < 0.5 ? 25 : S.mntPrice < 0.8 ? 15 : S.mntPrice < 1 ? 10 : 5;
+  var cr = conc > 0.85 ? 35 : conc > 0.65 ? 20 : conc > 0.45 ? 10 : 5;
+  return Math.max(10, Math.min(95, Math.round(100 - pr - cr)));
+}
+```
+
+The score is `100 − pr − cr`, clamped to the range **10–95**. When a wallet has no balance, the engine returns a neutral default of **72** (low risk) rather than dividing by zero.
+
+<Note>
+  `S.mntPrice` and `S.ethPrice` are fetched from the CoinGecko API every 30 seconds and injected into the global state object `S`.
+</Note>
+
+## Price risk component (`pr`)
+
+The price risk penalty reflects how close MNT is to price levels that historically precede liquidation cascades. The further MNT falls below $1.00, the higher the penalty deducted from the base score.
+
+| MNT price | Penalty (pr) |
+|-----------|-------------|
+| Below $0.30 | 35 pts |
+| $0.30 – $0.49 | 25 pts |
+| $0.50 – $0.79 | 15 pts |
+| $0.80 – $0.99 | 10 pts |
+| $1.00 and above | 5 pts |
+
+## Concentration risk component (`cr`)
+
+The concentration risk penalty reflects how much of your total portfolio value is denominated in MNT. A portfolio with more than 85% in a single volatile asset carries substantially more tail risk than a diversified one.
+
+| MNT share of portfolio | Penalty (cr) |
+|------------------------|-------------|
+| Above 85% | 35 pts |
+| 66% – 85% | 20 pts |
+| 46% – 65% | 10 pts |
+| 45% or less | 5 pts |
+
+<Tip>
+  The minimum possible combined penalty is 10 pts (MNT ≥ $1.00, MNT share ≤ 45%), yielding a maximum score of 90. The clamp ceiling of 95 exists to accommodate any future tier additions that might reduce penalties further.
+</Tip>
+
+## Score bands
+
+The final integer maps to one of three risk bands, each colour-coded throughout the MantleScope UI.
+
+| Score range | Band | UI colour | Meaning |
+|-------------|------|-----------|---------|
+| 70 – 95 | Low risk | Green | Portfolio is well diversified and MNT price is healthy. |
+| 40 – 69 | Medium risk | Amber | Elevated concentration or MNT price weakness warrants monitoring. |
+| 10 – 39 | High risk | Red | Significant exposure. The AI engine recommends immediate action. |
+
+## Liquidation risk derivation
+
+The liquidation risk indicator shown on the dashboard is derived directly from the score. No separate calculation is performed.
+
+<Steps>
+  <Step title="Score above 70">
+    Liquidation risk is displayed as **None**. Your positions are not under threat at current prices.
+  </Step>
+  <Step title="Score between 41 and 70">
+    Liquidation risk is displayed as **Low**. A vault guard trigger price is suggested by the AI engine at 72% of the current MNT spot price.
+  </Step>
+  <Step title="Score at or below 40">
+    Liquidation risk is displayed as **Medium**. The AI engine recommends reducing MNT exposure and enabling vault guards immediately.
+  </Step>
+</Steps>
+
+<Warning>
+  A "Medium" liquidation risk label does not mean liquidation is imminent — it means your current portfolio configuration would sustain meaningful losses if MNT continued to fall. Use the Simulator to model specific price scenarios before acting.
+</Warning>
+
+## Edge cases
+
+<AccordionGroup>
+  <Accordion title="Empty or zero-balance wallet">
+    When both `mnt` and `eth` balances are zero, `total` evaluates to `0` and the function returns the neutral default score of **72** rather than attempting division. This prevents a NaN result and keeps the UI readable until real balances load.
+  </Accordion>
+  <Accordion title="Score floor and ceiling">
+    `Math.max(10, Math.min(95, ...))` clamps the result. In practice, the minimum achievable score at the worst tier combination (pr = 35, cr = 35) is `100 − 35 − 35 = 30`, which lands in the High risk band. The clamp prevents hypothetical future tier additions from producing invalid UI states.
+  </Accordion>
+  <Accordion title="ETH price in the formula">
+    ETH price affects the denominator (total portfolio value) but has no dedicated penalty tier. This means holding more ETH relative to MNT dilutes concentration risk without attracting its own price-risk penalty, reflecting ETH's relative price stability compared to MNT.
+  </Accordion>
+</AccordionGroup>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="AI risk engine" icon="brain" href="/risk/ai-engine">
+    See how the engine translates your score into plain-language insights and vault guard recommendations.
+  </Card>
+  <Card title="Scenario simulator" icon="wave-pulse" href="/features/simulator">
+    Stress-test your score under custom MNT price drops, volatility levels, and time horizons.
+  </Card>
+</CardGroup>

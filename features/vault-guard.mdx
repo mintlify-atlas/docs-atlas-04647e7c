@@ -1,0 +1,156 @@
+---
+title: "Deploying Vault Guard contracts on Mantle"
+description: "Deploy smart contracts on Mantle that automatically pause, alert, or withdraw positions when price, health factor, concentration, or risk score thresholds are breached."
+---
+
+Vault Guard contracts are autonomous smart contracts deployed on Mantle Mainnet that watch your positions and act without manual intervention. When the AI engine detects that a monitored condition has crossed its threshold — a price drop, a health factor decline, a concentration spike, or a risk score rise — the contract executes the configured action immediately and writes the event to the [Proof Log](/features/proof-log).
+
+## How it works
+
+<Steps>
+  <Step title="AI engine monitors conditions">
+    The risk engine continuously evaluates your portfolio. Each guard specifies one condition and one threshold. When the condition is met, the engine calls the guard contract on Mantle.
+  </Step>
+  <Step title="Contract executes the action">
+    Depending on the configured action, the guard either pauses the position (halts new deposits or swaps), sends an alert to the feed, or withdraws the asset back to your wallet.
+  </Step>
+  <Step title="Action is logged onchain">
+    Every guard execution is written as an immutable transaction to the [Proof Log](/features/proof-log). The log entry includes the transaction hash, a description of the action taken, and a timestamp.
+  </Step>
+</Steps>
+
+<Warning>
+In demo mode, guard contracts are simulated entirely in the browser. No transaction is submitted to Mantle Mainnet. Connect a real wallet to deploy live guards that execute onchain.
+</Warning>
+
+## Default guards
+
+Three guards are pre-configured when you load MantleScope:
+
+| Asset | Condition | Threshold | Action | Protocol |
+|-------|-----------|-----------|--------|----------|
+| MNT/USDC LP | `price_lte` | \$0.72 | Pause position | Agni Finance |
+| mETH staking | `health_lte` | 1.5 | Alert only | Mantle LST |
+| USDC lending | `conc_gte` | 90 % utilisation | Withdraw | Lendle |
+
+Each default guard is shown as a card in the list with a green **Active** label and an enabled toggle. Flipping the toggle to the off position pauses the guard and changes the status label to **Paused**.
+
+<Note>
+The sidebar nav badge next to Vault Guard shows the total count of configured guards (default: 3). When you create a new guard, the badge increments automatically.
+</Note>
+
+## Guard condition types
+
+<AccordionGroup>
+  <Accordion title="price_lte — price drops below threshold" icon="arrow-trend-down">
+    Triggers when the live asset price from CoinGecko falls to or below the threshold value.
+
+    **Example:** `price_lte 0.72` fires when MNT price ≤ \$0.72.
+
+    Best used for LP positions and native token holdings where a sustained price decline creates impermanent loss or liquidation risk.
+  </Accordion>
+  <Accordion title="health_lte — health factor drops below threshold" icon="heart-crack">
+    Triggers when the position health factor (as calculated by the simulator's formula or reported by the lending protocol) falls to or below the threshold.
+
+    **Example:** `health_lte 1.5` fires when the mETH staking health factor ≤ 1.5.
+
+    A health factor below 1.0 typically means the position is liquidatable. A `health_lte 1.5` guard provides a safety buffer above that point.
+  </Accordion>
+  <Accordion title="conc_gte — concentration rises above threshold" icon="arrow-trend-up">
+    Triggers when MNT's share of total portfolio value rises to or above the threshold percentage.
+
+    **Example:** `conc_gte 90` fires when MNT makes up 90 % or more of the portfolio.
+
+    Useful for catching rebalancing failures or sudden drops in non-MNT positions that inflate MNT's share.
+  </Accordion>
+  <Accordion title="risk_gte — risk score rises above threshold" icon="gauge-high">
+    Triggers when the adjusted portfolio risk score (from `calcScore`) reaches or exceeds the threshold.
+
+    **Example:** `risk_gte 80` fires when the risk score ≥ 80.
+
+    Note: in MantleScope's 0–100 scale, a higher score means lower risk. `risk_gte` is therefore most useful when set near the top of the medium-risk band (for example, ≥ 75) to catch situations where rising score indicates improving conditions that would let you re-enter a position. For protecting against deteriorating conditions, use `price_lte` or `health_lte` instead.
+  </Accordion>
+</AccordionGroup>
+
+## Guard actions
+
+| Action | Description |
+|--------|-------------|
+| **Pause position** | Halts new deposits, withdrawals, and swaps for the protected position until the guard is manually reset or the condition clears. |
+| **Alert only** | Adds a danger alert to the [Alerts](/features/alerts) feed without touching the position. Useful when you want a warning but prefer to act manually. |
+| **Withdraw** | Withdraws the full position balance back to the connected wallet address. |
+
+## Supported protocols
+
+<CardGroup cols={2}>
+  <Card title="Agni Finance" icon="fire">
+    Mantle's native concentrated liquidity DEX. Use guards on LP positions to protect against MNT price drops causing out-of-range liquidity and impermanent loss.
+  </Card>
+  <Card title="Lendle" icon="building-columns">
+    Mantle's lending and borrowing protocol. Use guards on USDC lending positions to automatically withdraw if utilisation or borrow rates spike.
+  </Card>
+  <Card title="Mantle LST" icon="layer-group">
+    The official liquid staking protocol for mETH on Mantle. Use health factor guards to monitor staking positions and receive early warnings before the health drops to liquidation range.
+  </Card>
+  <Card title="Init Capital" icon="seedling">
+    A money market protocol on Mantle. Suitable for guards on lending or leveraged positions where health factor management is critical.
+  </Card>
+</CardGroup>
+
+## Creating a new guard
+
+Click **+ New guard** in the card header to open the guard creation modal.
+
+<Steps>
+  <Step title="Select the asset to protect">
+    Choose from:
+    - **MNT** — native Mantle token
+    - **mETH** — mETH liquid staking receipt token
+    - **USDC** — USDC lending position
+    - **MNT/USDC LP** — Agni Finance liquidity position
+  </Step>
+  <Step title="Choose the trigger action">
+    Select one of: **Pause position**, **Send alert only**, or **Withdraw to wallet**.
+  </Step>
+  <Step title="Set the trigger condition and threshold">
+    Choose a condition type (`price_lte`, `health_lte`, `conc_gte`, or `risk_gte`) and enter a numeric threshold in the adjacent input. The threshold field is required — saving is blocked until a value is entered.
+  </Step>
+  <Step title="Select the protocol">
+    Choose the protocol the position belongs to: Agni Finance, Lendle, Mantle LST, or Init Capital.
+  </Step>
+  <Step title="Deploy the guard">
+    Click **Deploy vault guard on Mantle**. In live mode the contract is submitted to Mantle Mainnet. In demo mode the guard is added to the list immediately and a proof log entry is simulated.
+  </Step>
+</Steps>
+
+```text example-guard
+Asset:      MNT/USDC LP
+Action:     Pause position
+Condition:  price ≤ $0.72
+Protocol:   Agni Finance
+```
+
+## Toggling guards
+
+Each guard card in the list includes an on/off toggle. Disabling a guard changes its status label to **Paused** and stops it from firing even if the condition is met. Re-enabling it changes the label back to **Active**. The proof log records both enable and disable events.
+
+<Tip>
+Before running a stress test in the [Simulator](/features/simulator), check that your guards are set to thresholds above the simulated danger zone. If the simulator shows a danger verdict at −30 % MNT, your `price_lte` guard threshold should be set above `currentPrice × 0.70` to fire before the danger point is reached.
+</Tip>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Simulator" icon="wave-pulse" href="/features/simulator">
+    Preview which guard would fire under price-change and volatility scenarios before deploying.
+  </Card>
+  <Card title="Proof Log" icon="file-lines" href="/features/proof-log">
+    Every guard creation and action is written as an immutable transaction to the onchain audit trail.
+  </Card>
+  <Card title="Alerts" icon="bell" href="/features/alerts">
+    Guards with the "Alert only" action append directly to the alert feed when triggered.
+  </Card>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    The risk score and concentration values that drive guard conditions are visible at a glance on the dashboard.
+  </Card>
+</CardGroup>

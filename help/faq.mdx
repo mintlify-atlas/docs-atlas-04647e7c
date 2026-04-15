@@ -1,0 +1,57 @@
+---
+title: "Frequently asked questions about MantleScope"
+description: "Answers to common questions about connecting wallets, risk scores, Vault Guards, demo mode, and how MantleScope keeps your keys secure."
+---
+
+Common questions and answers about MantleScope — from wallet setup to understanding your risk score and Vault Guard behaviour.
+
+<AccordionGroup>
+  <Accordion title="Is MantleScope safe to connect my wallet to?">
+    Yes. MantleScope runs entirely in your browser and never transmits your private keys or seed phrase anywhere. It uses MetaMask's injected provider (`window.ethereum`) to request read-only access to your address. Any transaction (such as deploying a Vault Guard) requires your explicit approval in MetaMask before anything is submitted onchain.
+  </Accordion>
+
+  <Accordion title="What network does MantleScope work on?">
+    MantleScope is built exclusively for **Mantle Mainnet** (Chain ID 5000). If your wallet is on a different network when you connect, MantleScope will display a yellow banner and offer to switch automatically.
+  </Accordion>
+
+  <Accordion title="What does the risk score mean?">
+    Your risk score runs from 10 to 95 and is calculated from two factors: the current MNT price and the concentration of MNT in your portfolio. A score of 70 or above is **Low risk** (green), 40–69 is **Medium risk** (amber), and below 40 is **High risk** (red). See the [risk scoring page](/risk/risk-scoring) for the full breakdown.
+  </Accordion>
+
+  <Accordion title="Why did my risk score change without me doing anything?">
+    The risk score is recalculated every time MantleScope fetches new prices, which happens every 30 seconds. If the MNT price moves across a tier boundary (for example, falling below $0.80), your price-risk component increases and your score drops.
+  </Accordion>
+
+  <Accordion title="What is a Vault Guard?">
+    A Vault Guard is an autonomous protection rule deployed as a smart contract on Mantle. You define a condition (such as MNT price ≤ $0.72) and an action (pause, alert, or withdraw). When the AI engine determines the condition is met, the contract executes the action onchain without any manual step. See the [Vault Guard guide](/features/vault-guard) for details.
+  </Accordion>
+
+  <Accordion title="Do Vault Guards cost gas?">
+    Deploying a Vault Guard requires a Mantle transaction, which costs a small amount of MNT for gas. Monitoring and condition evaluation happen in MantleScope's AI engine at no cost. When a guard fires and submits an action transaction, that also costs gas.
+  </Accordion>
+
+  <Accordion title="Can I try MantleScope without a wallet?">
+    Yes. On the connect screen, click **Continue with demo data →** to load a simulated portfolio. All features work in demo mode except that Vault Guards are not deployed onchain and the Proof Log entries are illustrative only.
+  </Accordion>
+
+  <Accordion title="How often does MantleScope fetch my balances?">
+    Balances are fetched immediately on connect, then refreshed every 60 seconds. Prices update every 30 seconds. The Mantle block number updates every 4 seconds.
+  </Accordion>
+
+  <Accordion title="What happens if the CoinGecko API is down?">
+    MantleScope falls back to hardcoded prices (MNT $0.92, ETH $2,840) and continues calculating your risk score. The score will reflect these static values until live prices resume.
+  </Accordion>
+
+  <Accordion title="Which DeFi protocols does MantleScope support?">
+    MantleScope currently supports **Agni Finance** (LP positions), **Lendle** (lending), **Mantle LST** (mETH staking), and **Init Capital**. See the [supported protocols page](/integrations/supported-protocols) for details.
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Troubleshooting" icon="wrench" href="/help/troubleshooting">
+    Fix common connection and display issues.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get up and running in minutes.
+  </Card>
+</CardGroup>
